@@ -1,20 +1,47 @@
-from django.http import HttpResponse, response
 
-def index(request):
-    response = "hello world, you're on Index"
-    return HttpResponse(response)
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+from django.views import generic
 
-
-def detail(request, question_id):
-    response = "You're looking at question %s."
-    return HttpResponse(response % question_id)
+from .models import Choice, Question
 
 
-def results(request,question_id):
-    response = "These are results for question %s."
-    return HttpResponse(response % question_id)
+class IndexView(generic.ListView):
+    template_name = 'polls/index.html'
+    context_object_name = 'latest_questions'
+
+    def get_queryset(self):
+        """Return the last five published questions."""
+        return Question.objects.order_by('-pub_date')[:5]
+
+
+class DetailView(generic.DetailView):
+    model = Question
+    template_name = 'polls/detail.html'
+
+
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = 'polls/results.html'
 
 
 def vote(request, question_id):
-    response = "You're voting on question %s."
-    return HttpResponse(response % question_id)
+    ... # same as above, no changes needed.
+
+def vote(request, question_id):
+    question = get_object_or_404(Question, pk=question_id)
+    selected_choice = question.choice_set.get(pk=request.POST['choice']) #the name of the input variable on the front end
+
+    if selected_choice:
+
+        selected_choice.votes += 1
+        selected_choice.save()
+
+        #always return an HttpResponseRedirect after doing server side edits
+
+        return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+
+
+    else:
+        return None
